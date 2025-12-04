@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h2>บันทึกรายรับ-รายจ่าย (ต้อง Login ก่อน)</h2>
+    
+    <select id="type">
+        <option value="INCOME">รายรับ (+)</option>
+        <option value="EXPENSE">รายจ่าย (-)</option>
+    </select>
+    <input type="number" id="amount" placeholder="จำนวนเงิน">
+    <input type="text" id="category" placeholder="หมวดหมู่ (เช่น ข้าว, รถ)">
+    <button onclick="addTx()">บันทึก</button>
+
+    <hr>
+    <button onclick="loadTx()">ดูรายการของฉัน</button>
+    <ul id="list"></ul>
+
+    <script>
+        // ฟังก์ชันช่วย: ดึง Token ที่เก็บไว้ตอน Login
+        function getToken() {
+            return localStorage.getItem('token');
+        }
+
+        async function addTx() {
+            const token = getToken();
+            if(!token) return alert("กรุณา Login ในหน้า test_login.html ก่อน!");
+
+            const type = document.getElementById('type').value;
+            const amount = document.getElementById('amount').value;
+            const category = document.getElementById('category').value;
+
+            const res = await fetch('http://localhost:3000/api/transactions', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token  // <--- แนบตั๋วผ่านทางตรงนี้!
+                },
+                body: JSON.stringify({ type, amount, category })
+            });
+            const data = await res.json();
+            alert(data.message);
+            loadTx(); // บันทึกเสร็จให้รีเฟรชรายการ
+        }
+
+        async function loadTx() {
+            const token = getToken();
+            if(!token) return;
+
+            const res = await fetch('http://localhost:3000/api/transactions', {
+                method: 'GET',
+                headers: { 
+                    'Authorization': 'Bearer ' + token // <--- แนบตั๋วเหมือนกัน
+                }
+            });
+            const data = await res.json();
+            
+            const list = document.getElementById('list');
+            list.innerHTML = "";
+            data.forEach(item => {
+                const color = item.type === 'INCOME' ? 'green' : 'red';
+                list.innerHTML += `<li style="color:${color}">
+                    ${item.category}: ${item.amount} บาท
+                </li>`;
+            });
+        }
+    </script>
+</body>
+</html>

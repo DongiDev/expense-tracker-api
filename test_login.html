@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h2>ทดสอบเข้าสู่ระบบ (Login)</h2>
+    <input type="email" id="email" placeholder="อีเมลที่สมัครไว้">
+    <input type="password" id="password" placeholder="รหัสผ่าน">
+    <button onclick="login()">เข้าสู่ระบบ</button>
+    
+    <p><b>Token ที่ได้:</b> <span id="tokenResult" style="color:blue; word-break: break-all;">-</span></p>
+
+    <script>
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            const res = await fetch('http://localhost:3000/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+
+            const data = await res.json();
+            
+            if(res.ok) {
+                alert(data.message);
+                // โชว์ Token ที่ได้มา
+                document.getElementById('tokenResult').innerText = data.token;
+                
+                // เก็บ Token ไว้ในเครื่อง (เหมือนล็อกอินค้างไว้)
+                localStorage.setItem('token', data.token);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        }
+    </script>
+</body>
+</html>

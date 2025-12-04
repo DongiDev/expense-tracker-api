@@ -1,0 +1,35 @@
+// 1. บอก Prisma ว่าเราใช้ MySQL
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// 2. ตารางผู้ใช้งาน (User)
+model User {
+  id       Int           @id @default(autoincrement()) // รหัสไอดี (รันเลขเอง 1,2,3...)
+  email    String        @unique                       // อีเมล (ห้ามซ้ำ)
+  password String                                      // รหัสผ่าน (แบบเข้ารหัสแล้ว)
+  name     String?                                     // ชื่อเล่น (ใส่หรือไม่ใส่ก็ได้)
+  createdAt DateTime     @default(now())               // วันที่สมัคร
+
+  // ความสัมพันธ์: User 1 คน มีได้หลาย Transaction
+  transactions Transaction[]
+}
+
+// 3. ตารางรายรับ-รายจ่าย (Transaction)
+model Transaction {
+  id          Int      @id @default(autoincrement())
+  type        String   // ประเภท: 'INCOME' (รายรับ) หรือ 'EXPENSE' (รายจ่าย)
+  amount      Float    // จำนวนเงิน
+  category    String   // หมวดหมู่ (เช่น อาหาร, เดินทาง, เงินเดือน)
+  date        DateTime @default(now()) // วันที่บันทึก
+  description String?  // รายละเอียดเพิ่มเติม
+
+  // ความสัมพันธ์: Transaction นี้เป็นของ User คนไหน?
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+}
