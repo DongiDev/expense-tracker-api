@@ -1,15 +1,129 @@
-body { font-family: sans-serif; background-color: #f0f2f5; margin: 0; }
-.navbar { background: #333; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
-.btn-logout { background: #d9534f; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 4px; }
+/* 1. นำเข้าฟอนต์สวยๆ จาก Google Font (Sarabun อ่านง่าย ทันสมัย) */
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap');
 
-.container { padding: 20px; max-width: 600px; margin: auto; }
-.login-container { max-width: 300px; margin: 100px auto; text-align: center; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-input, select, button { padding: 10px; margin: 5px 0; border-radius: 4px; border: 1px solid #ddd; width: 90%; }
-button { background: #28a745; color: white; font-weight: bold; cursor: pointer; border: none; width: 100%; }
-button:hover { background: #218838; }
-.card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-.form-row { display: flex; gap: 10px; }
+/* 2. จัดการพื้นหลัง (Body) */
+body {
+    font-family: 'Sarabun', sans-serif;
+    margin: 0;
+    padding: 0;
+    /* ใช้ Gradient สีไล่ระดับ (ม่วง-ฟ้า) ดูแพงและสบายตา */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh; /* ให้สูงเต็มจอเสมอ */
+    color: #333;
+}
+
+/* 3. แถบเมนูด้านบน (Navbar) แบบโปร่งแสง */
+.navbar {
+    background: rgba(255, 255, 255, 0.9); /* สีขาวโปร่งแสง */
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05); /* เงาบางๆ */
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.navbar h3 { margin: 0; color: #4a4a4a; font-weight: 600; }
+
+/* 4. จัดคอนเทนเนอร์กลาง */
+.container {
+    padding: 30px 20px;
+    max-width: 800px; /* ขยายให้กว้างขึ้นหน่อย */
+    margin: auto;
+}
+
+.login-container {
+    max-width: 400px;
+    margin: 80px auto;
+    text-align: center;
+    padding: 40px;
+}
+
+/* 5. การ์ดแบบ Glassmorphism (ไฮไลท์สำคัญ!) ✨ */
+.card, .login-container {
+    background: rgba(255, 255, 255, 0.9); /* ขาวโปร่งแสง */
+    backdrop-filter: blur(10px); /* เอฟเฟกต์เบลอฉากหลัง (กระจกฝ้า) */
+    border-radius: 16px; /* มุมโค้งมน */
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1); /* เงาลอยๆ ให้ดูมีมิติ */
+    border: 1px solid rgba(255, 255, 255, 0.3); /* ขอบขาวจางๆ */
+    margin-bottom: 25px;
+    padding: 25px;
+}
+
+/* 6. ช่องกรอกข้อมูล (Input) ให้ดูนุ่มนวล */
+input, select, button {
+    padding: 12px 15px;
+    margin: 8px 0;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    width: 100%;
+    box-sizing: border-box; /* ไม่ให้ทะลุกรอบ */
+    font-family: 'Sarabun', sans-serif;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+/* 7. ปุ่มกด (Button) ไล่สี */
+button {
+    background: linear-gradient(to right, #667eea, #764ba2);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+button:hover {
+    transform: translateY(-2px); /* ลอยขึ้นนิดนึงเวลานิ้วชี้ */
+    box-shadow: 0 7px 14px rgba(0,0,0,0.15);
+}
+
+button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ปุ่ม Logout สีแดง */
+.btn-logout {
+    background: #ff6b6b;
+    width: auto;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+}
+.btn-logout:hover { background: #fa5252; }
+
+/* 8. รายการธุรกรรม (List) */
 ul { list-style: none; padding: 0; }
-.tx-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
-.income { color: green; border-left: 5px solid green; }
-.expense { color: red; border-left: 5px solid red; }
+
+.tx-item {
+    padding: 15px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s;
+}
+
+.tx-item:last-child { border-bottom: none; }
+.tx-item:hover { background-color: #f9f9f9; border-radius: 8px; }
+
+/* สีของตัวเลข */
+.income span:last-child { color: #2ecc71; font-weight: bold; }
+.expense span:last-child { color: #e74c3c; font-weight: bold; }
+
+/* 9. ลิงก์ต่างๆ */
+a { color: #667eea; text-decoration: none; font-weight: 600; }
+a:hover { text-decoration: underline; }
+
+/* จัด layout ฟอร์มแนวนอน */
+.form-row { display: flex; gap: 15px; }
+.form-row input, .form-row select { flex: 1; }

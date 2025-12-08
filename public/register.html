@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>สมัครสมาชิก - Expense Tracker</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
     <div class="login-container">
@@ -14,9 +15,7 @@
         <input type="email" id="email" placeholder="อีเมล">
         <input type="password" id="password" placeholder="รหัสผ่าน">
         
-        <button onclick="register()">ยืนยันการสมัคร</button>
-        
-        <p class="message" id="msg"></p>
+        <button id="btnRegister" onclick="register()">ยืนยันการสมัคร</button>
         
         <p style="margin-top: 15px; font-size: 0.9em;">
             มีบัญชีแล้ว? <a href="/login.html">เข้าสู่ระบบที่นี่</a>
@@ -28,17 +27,24 @@
             const name = document.getElementById('name').value;
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            const msg = document.getElementById('msg');
+            
+            // เรียกปุ่มมาเตรียมไว้เปลี่ยนข้อความ
+            const btn = document.getElementById('btnRegister');
 
-            // เช็คว่ากรอกครบไหม
+            // 1. เช็คข้อมูล (ใช้ Swal เตือนแทนตัวหนังสือ)
             if(!name || !email || !password) {
-                msg.innerText = "กรุณากรอกข้อมูลให้ครบครับ";
-                msg.style.color = "red";
-                return;
+                return Swal.fire({
+                    icon: 'warning',
+                    title: 'ข้อมูลไม่ครบ',
+                    text: 'กรุณากรอกข้อมูลให้ครบทุกช่องครับ'
+                });
             }
 
+            // 2. เริ่มโหลด: ล็อกปุ่มและเปลี่ยนข้อความ
+            btn.innerText = 'กำลังสมัคร...';
+            btn.disabled = true; // ห้ามกดซ้ำ
+
             try {
-                // เรียก API ที่เราทำไว้ตอนแรก
                 const res = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -48,21 +54,35 @@
                 const data = await res.json();
                 
                 if(res.ok) {
-                    msg.innerText = "สมัครสำเร็จ! กำลังไปหน้าเข้าสู่ระบบ...";
-                    msg.style.color = "green";
-                    
-                    // รอ 1.5 วินาที แล้วเด้งไปหน้า Login ให้เอง
-                    setTimeout(() => {
+                    // สมัครผ่าน
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'สมัครสมาชิกสำเร็จ!',
+                        text: 'กำลังพาคุณไปหน้าเข้าสู่ระบบ...',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
                         window.location.href = '/login.html';
-                    }, 1500);
+                    });
                 } else {
-                    msg.innerText = data.message; // เช่น "อีเมลนี้มีคนใช้แล้ว"
-                    msg.style.color = "red";
+                    // สมัครไม่ผ่าน (เช่น อีเมลซ้ำ)
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'สมัครไม่ผ่าน',
+                        text: data.message
+                    });
                 }
             } catch (err) {
                 console.error(err);
-                msg.innerText = "ระบบมีปัญหา โปรดลองใหม่";
-                msg.style.color = "red";
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'ระบบมีปัญหา โปรดลองใหม่อีกครั้ง'
+                });
+            } finally {
+                // 3. จบการทำงาน (ไม่ว่าจะสำเร็จหรือล้มเหลว): คืนสภาพปุ่ม
+                btn.innerText = 'ยืนยันการสมัคร';
+                btn.disabled = false;
             }
         }
     </script>

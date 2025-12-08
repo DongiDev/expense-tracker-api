@@ -5,15 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>รายการของฉัน</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/socket.io/socket.io.js"></script>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายการของฉัน</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<script src="/socket.io/socket.io.js"></script>
 <body>
     <div class="navbar">
         <h3>💰 Expense Tracker</h3>
-        <span>สวัสดี, <span id="userName">User</span> <button onclick="logout()" class="btn-logout">ออก</button></span>
+        <span>
+            สวัสดี, <span id="userName">User</span> 
+            <button onclick="logout()" class="btn-logout">ออก</button>
+        </span>
     </div>
 
     <div class="container">
+        <div class="card" style="display: flex; gap: 20px; align-items: center; justify-content: space-around; flex-wrap: wrap;">
+            <div style="text-align: center;">
+                <h4>ยอดคงเหลือสุทธิ</h4>
+                <h1 id="totalBalance" style="color: #333; font-size: 2.5em;">0 ฿</h1>
+            </div>
+            <div style="width: 250px; height: 250px;">
+                <canvas id="expenseChart"></canvas>
+            </div>
+        </div>
+
         <div class="card input-section">
             <h3>📝 จดรายการใหม่</h3>
             <div class="form-row">
@@ -21,11 +45,11 @@
                     <option value="INCOME">รายรับ (+)</option>
                     <option value="EXPENSE">รายจ่าย (-)</option>
                 </select>
-                <input type="text" id="category" placeholder="หมวดหมู่ (เช่น ข้าว, เงินเดือน)">
+                <input type="text" id="category" placeholder="หมวดหมู่ (เช่น ข้าว, เดินทาง)">
                 <input type="number" id="amount" placeholder="จำนวนเงิน">
             </div>
             <input type="text" id="description" placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)" style="width: 100%; margin-top: 10px;">
-            <button onclick="addTx()" style="margin-top: 10px;">บันทึก</button>
+            <button id="btnSave" onclick="addTx()" style="margin-top: 10px;">บันทึก</button>
         </div>
 
         <div class="card list-section">
@@ -34,82 +58,198 @@
         </div>
     </div>
 
-    <script>
+
+   <script>
+        // --- ส่วนตั้งค่าตัวแปรเริ่มต้น ---
         const token = localStorage.getItem('token');
-        if(!token) window.location.href = '/login.html'; // ถ้าไม่มี Token เด้งกลับไป Login
+        if(!token) window.location.href = '/login.html';
 
         document.getElementById('userName').innerText = localStorage.getItem('username') || 'User';
 
-        async function loadTx() {
-            const res = await fetch('/api/transactions', {
-                headers: { 'Authorization': 'Bearer ' + token }
-            });
-            const data = await res.json();
-            const list = document.getElementById('list');
-            list.innerHTML = '';
+        // ตัวแปรเก็บกราฟ (เอาไว้ลบทิ้งเวลวาดใหม่)
+        let myChart = null; 
 
-            data.forEach(item => {
-                const isIncome = item.type === 'INCOME';
-                const sign = isIncome ? '+' : '-';
-                const colorClass = isIncome ? 'income' : 'expense';
+        // ตั้งค่า Toast Notification
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true
+        });
+
+        // --- ฟังก์ชันโหลดข้อมูลและวาดกราฟ ---
+        async function loadTx() {
+            try {
+                const res = await fetch('/api/transactions', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await res.json();
                 
-                list.innerHTML += `
-                    <li class="tx-item ${colorClass}">
-                        <span>
-                            <b>${item.category}</b> <small>(${item.description || '-'})</small>
-                        </span>
-                        <span>${sign} ${item.amount} ฿</span>
-                    </li>
-                `;
+                const list = document.getElementById('list');
+                const totalBalanceEl = document.getElementById('totalBalance');
+                list.innerHTML = '';
+
+                // ตัวแปรสำหรับคำนวณ
+                let balance = 0;
+                let expenseCategories = {}; // เก็บยอดจ่ายแยกตามหมวดหมู่ { 'อาหาร': 500, 'เดินทาง': 200 }
+
+                data.forEach(item => {
+                    // 1. คำนวณยอดเงินคงเหลือ
+                    if (item.type === 'INCOME') {
+                        balance += item.amount;
+                    } else {
+                        balance -= item.amount;
+                        
+                        // 2. เก็บข้อมูลลงถังหมวดหมู่ (เพื่อเอาไปทำกราฟ)
+                        if (expenseCategories[item.category]) {
+                            expenseCategories[item.category] += item.amount;
+                        } else {
+                            expenseCategories[item.category] = item.amount;
+                        }
+                    }
+
+                    // 3. สร้างรายการ HTML
+                    const isIncome = item.type === 'INCOME';
+                    const sign = isIncome ? '+' : '-';
+                    const colorClass = isIncome ? 'income' : 'expense';
+                    
+                    list.innerHTML += `
+                        <li class="tx-item ${colorClass}">
+                            <span>
+                                <b>${item.category}</b> <small>(${item.description || '-'})</small>
+                            </span>
+                            <span>${sign} ${item.amount} ฿</span>
+                        </li>
+                    `;
+                });
+
+                // 4. อัปเดตตัวเลขยอดเงินสุทธิ
+                totalBalanceEl.innerText = balance.toLocaleString() + " ฿";
+                if(balance < 0) totalBalanceEl.style.color = "red";
+                else totalBalanceEl.style.color = "#28a745";
+
+                // 5. วาดกราฟใหม่
+                renderChart(expenseCategories);
+
+            } catch (err) {
+                console.error("โหลดข้อมูลไม่สำเร็จ", err);
+            }
+        }
+
+        // --- ฟังก์ชันวาดกราฟ (Chart.js) ---
+        function renderChart(categories) {
+            const ctx = document.getElementById('expenseChart').getContext('2d');
+            
+            // ดึงชื่อหมวดหมู่และยอดเงินออกมา
+            const labels = Object.keys(categories);
+            const data = Object.values(categories);
+
+            // ถ้ามีกราฟเก่าอยู่ ให้ลบทิ้งก่อน (ไม่งั้นมันจะซ้อนกัน)
+            if (myChart) {
+                myChart.destroy();
+            }
+
+            // ถ้าไม่มีรายจ่ายเลย ไม่ต้องวาด
+            if (labels.length === 0) {
+                return; 
+            }
+
+            // สร้างกราฟวงกลม (Donut Chart)
+            myChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'ยอดใช้จ่าย (บาท)',
+                        data: data,
+                        backgroundColor: [
+                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'
+                        ],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' } // เอาป้ายชื่อไว้ข้างล่าง
+                    }
+                }
             });
         }
 
+        // --- ฟังก์ชันบันทึกรายการ (เหมือนเดิม) ---
         async function addTx() {
             const type = document.getElementById('type').value;
             const category = document.getElementById('category').value;
             const amount = document.getElementById('amount').value;
             const description = document.getElementById('description').value;
+            const btn = document.getElementById('btnSave');
 
-            if(!amount || !category) return alert('กรอกข้อมูลให้ครบนะ');
+            if(!amount || !category) {
+                return Swal.fire({ icon: 'warning', title: 'ข้อมูลไม่ครบ', text: 'กรุณากรอกให้ครบถ้วนครับ' });
+            }
 
-            await fetch('/api/transactions', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token 
-                },
-                body: JSON.stringify({ type, amount, category, description })
-            });
+            btn.innerText = 'กำลังบันทึก...';
+            btn.disabled = true;
 
-            // เคลียร์ช่องและโหลดใหม่
-            document.getElementById('amount').value = '';
-            document.getElementById('category').value = '';
-            document.getElementById('description').value = '';
-            loadTx();
+            try {
+                const res = await fetch('/api/transactions', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token 
+                    },
+                    body: JSON.stringify({ type, amount, category, description })
+                });
+
+                if(res.ok) {
+                    Toast.fire({ icon: 'success', title: 'บันทึกเรียบร้อย' });
+                    document.getElementById('amount').value = '';
+                    document.getElementById('category').value = '';
+                    document.getElementById('description').value = '';
+                    
+                    // พอโหลดใหม่ กราฟก็จะอัปเดตเองอัตโนมัติ!
+                    loadTx(); 
+                } else {
+                    Swal.fire({ icon: 'error', title: 'บันทึกไม่สำเร็จ' });
+                }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                btn.innerText = 'บันทึก';
+                btn.disabled = false;
+            }
         }
 
         function logout() {
-            localStorage.removeItem('token');
-            window.location.href = '/login.html';
+            Swal.fire({
+                title: 'ยืนยันออกจากระบบ?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'ใช่, ออกเลย',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.removeItem('token');
+                    window.location.href = '/login.html';
+                }
+            });
         }
 
-        loadTx(); // โหลดรายการทันทีเมื่อเปิดหน้า
-        // ... (ต่อจากโค้ดเดิม) ...
+        // เริ่มทำงาน
+        loadTx();
 
-// 1. เชื่อมต่อ Socket
-const socket = io();
-
-// 2. คอยฟังเหตุการณ์ชื่อ 'new_transaction'
-socket.on('new_transaction', (newTx) => {
-    console.log("มีรายการใหม่เด้งเข้ามา!", newTx);
-
-    // เช็คก่อนว่าเป็นของ User เราไหม? (ถ้าทำระบบจริงจังต้องแยก Room แต่นี้เอาแบบง่ายก่อน)
-    // ในที่นี้เราจะสั่งให้ "โหลดรายการใหม่ทันที" เลย
-    loadTx(); 
-
-    // (ลูกเล่น) แจ้งเตือนเล็กๆ
-    alert(`มีรายการใหม่: ${newTx.category} (${newTx.amount} บาท)`);
-});
+        // --- Real-time Socket.io ---
+        const socket = io();
+        socket.on('new_transaction', (newTx) => {
+            loadTx(); // โหลดใหม่ กราฟก็ขยับตามทันที!
+            Toast.fire({
+                icon: 'info',
+                title: `มีรายการใหม่: ${newTx.category}`
+            });
+        });
     </script>
 </body>
 </html>

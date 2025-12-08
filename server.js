@@ -39,7 +39,7 @@ const transactionRoutes = require('./routes/transactionRoutes');
 app.use('/api/transactions', transactionRoutes);
 
 
-// เปิด Server (เปลี่ยนจาก app.listen เป็น server.listen)
+//! เปิด Server
 const PORT = 3000;
 server.listen(PORT, () => {
     console.log(`Server + Socket.io running on port ${PORT}`);
