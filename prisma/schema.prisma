@@ -16,6 +16,10 @@ model User {
   name     String?                                     // ชื่อเล่น (ใส่หรือไม่ใส่ก็ได้)
   createdAt DateTime     @default(now())               // วันที่สมัคร
 
+// ฟิลด์สำหรับการลืมรหัสผ่าน
+  resetToken        String?  // เก็บ OTP หรือ Token ชั่วคราว
+  resetTokenExpiry  DateTime? // เก็บเวลาหมดอายุ
+
   // ความสัมพันธ์: User 1 คน มีได้หลาย Transaction
   transactions Transaction[]
 }

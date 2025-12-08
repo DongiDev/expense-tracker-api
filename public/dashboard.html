@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายการของฉัน</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<script src="/socket.io/socket.io.js"></script>
+<body>
+    <div class="navbar">
+        <h3>💰 Expense Tracker</h3>
+        <span>สวัสดี, <span id="userName">User</span> <button onclick="logout()" class="btn-logout">ออก</button></span>
+    </div>
+
+    <div class="container">
+        <div class="card input-section">
+            <h3>📝 จดรายการใหม่</h3>
+            <div class="form-row">
+                <select id="type">
+                    <option value="INCOME">รายรับ (+)</option>
+                    <option value="EXPENSE">รายจ่าย (-)</option>
+                </select>
+                <input type="text" id="category" placeholder="หมวดหมู่ (เช่น ข้าว, เงินเดือน)">
+                <input type="number" id="amount" placeholder="จำนวนเงิน">
+            </div>
+            <input type="text" id="description" placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)" style="width: 100%; margin-top: 10px;">
+            <button onclick="addTx()" style="margin-top: 10px;">บันทึก</button>
+        </div>
+
+        <div class="card list-section">
+            <h3>ประวัติรายการ</h3>
+            <ul id="list"></ul>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if(!token) window.location.href = '/login.html'; // ถ้าไม่มี Token เด้งกลับไป Login
+
+        document.getElementById('userName').innerText = localStorage.getItem('username') || 'User';
+
+        async function loadTx() {
+            const res = await fetch('/api/transactions', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = await res.json();
+            const list = document.getElementById('list');
+            list.innerHTML = '';
+
+            data.forEach(item => {
+                const isIncome = item.type === 'INCOME';
+                const sign = isIncome ? '+' : '-';
+                const colorClass = isIncome ? 'income' : 'expense';
+                
+                list.innerHTML += `
+                    <li class="tx-item ${colorClass}">
+                        <span>
+                            <b>${item.category}</b> <small>(${item.description || '-'})</small>
+                        </span>
+                        <span>${sign} ${item.amount} ฿</span>
+                    </li>
+                `;
+            });
+        }
+
+        async function addTx() {
+            const type = document.getElementById('type').value;
+            const category = document.getElementById('category').value;
+            const amount = document.getElementById('amount').value;
+            const description = document.getElementById('description').value;
+
+            if(!amount || !category) return alert('กรอกข้อมูลให้ครบนะ');
+
+            await fetch('/api/transactions', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token 
+                },
+                body: JSON.stringify({ type, amount, category, description })
+            });
+
+            // เคลียร์ช่องและโหลดใหม่
+            document.getElementById('amount').value = '';
+            document.getElementById('category').value = '';
+            document.getElementById('description').value = '';
+            loadTx();
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login.html';
+        }
+
+        loadTx(); // โหลดรายการทันทีเมื่อเปิดหน้า
+        // ... (ต่อจากโค้ดเดิม) ...
+
+// 1. เชื่อมต่อ Socket
+const socket = io();
+
+// 2. คอยฟังเหตุการณ์ชื่อ 'new_transaction'
+socket.on('new_transaction', (newTx) => {
+    console.log("มีรายการใหม่เด้งเข้ามา!", newTx);
+
+    // เช็คก่อนว่าเป็นของ User เราไหม? (ถ้าทำระบบจริงจังต้องแยก Room แต่นี้เอาแบบง่ายก่อน)
+    // ในที่นี้เราจะสั่งให้ "โหลดรายการใหม่ทันที" เลย
+    loadTx(); 
+
+    // (ลูกเล่น) แจ้งเตือนเล็กๆ
+    alert(`มีรายการใหม่: ${newTx.category} (${newTx.amount} บาท)`);
+});
+    </script>
+</body>
+</html>

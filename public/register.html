@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สมัครสมาชิก - Expense Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="login-container">
+        <h2>📝 สมัครสมาชิกใหม่</h2>
+        
+        <input type="text" id="name" placeholder="ชื่อเล่น (เช่น พี่โอม)">
+        <input type="email" id="email" placeholder="อีเมล">
+        <input type="password" id="password" placeholder="รหัสผ่าน">
+        
+        <button onclick="register()">ยืนยันการสมัคร</button>
+        
+        <p class="message" id="msg"></p>
+        
+        <p style="margin-top: 15px; font-size: 0.9em;">
+            มีบัญชีแล้ว? <a href="/login.html">เข้าสู่ระบบที่นี่</a>
+        </p>
+    </div>
+
+    <script>
+        async function register() {
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const msg = document.getElementById('msg');
+
+            // เช็คว่ากรอกครบไหม
+            if(!name || !email || !password) {
+                msg.innerText = "กรุณากรอกข้อมูลให้ครบครับ";
+                msg.style.color = "red";
+                return;
+            }
+
+            try {
+                // เรียก API ที่เราทำไว้ตอนแรก
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+
+                const data = await res.json();
+                
+                if(res.ok) {
+                    msg.innerText = "สมัครสำเร็จ! กำลังไปหน้าเข้าสู่ระบบ...";
+                    msg.style.color = "green";
+                    
+                    // รอ 1.5 วินาที แล้วเด้งไปหน้า Login ให้เอง
+                    setTimeout(() => {
+                        window.location.href = '/login.html';
+                    }, 1500);
+                } else {
+                    msg.innerText = data.message; // เช่น "อีเมลนี้มีคนใช้แล้ว"
+                    msg.style.color = "red";
+                }
+            } catch (err) {
+                console.error(err);
+                msg.innerText = "ระบบมีปัญหา โปรดลองใหม่";
+                msg.style.color = "red";
+            }
+        }
+    </script>
+</body>
+</html>

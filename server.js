@@ -9,17 +9,15 @@ const server = http.createServer(app); // 3. สร้าง Server ที่ห
 
 // 4. ตั้งค่า Socket.io
 const io = new Server(server, {
-    cors: {
-        origin: "*", // ยอมรับการเชื่อมต่อจากทุกที่ (สำหรับ Dev)
-        methods: ["GET", "POST"]
-    }
+    cors: { origin: "*" } // อนุญาตให้เชื่อมต่อได้จากทุกที่
 });
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.static('public'));
 
-// 5. ฝากตัวแปร io ไว้ใน req เพื่อให้ Controller เรียกใช้ได้
+//ฝากตัวแปร io ไว้ใน req เพื่อให้ Controller เรียกใช้ได้
 app.use((req, res, next) => {
     req.io = io;
     next();
@@ -39,6 +37,7 @@ const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 const transactionRoutes = require('./routes/transactionRoutes');
 app.use('/api/transactions', transactionRoutes);
+
 
 // เปิด Server (เปลี่ยนจาก app.listen เป็น server.listen)
 const PORT = 3000;

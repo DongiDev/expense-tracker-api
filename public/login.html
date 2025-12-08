@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เข้าสู่ระบบ - Expense Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="login-container">
+        <h2>🔐 เข้าสู่ระบบ</h2>
+        <input type="email" id="email" placeholder="อีเมล">
+        <input type="password" id="password" placeholder="รหัสผ่าน">
+        <button onclick="login()">เข้าใช้งาน</button>
+        <p class="message" id="errorMsg"></p>
+        <p style="margin-top: 15px; font-size: 0.9em;">
+        ยังไม่มีบัญชี? <a href="/register.html">สมัครสมาชิกใหม่</a>
+        <div style="text-align: center; margin-top: 10px;">
+        <a href="/reset_password.html">ลืมรหัสผ่าน?</a>
+    </p>
+    </div>
+    
+    
+
+    <script>
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await res.json();
+                
+                if(res.ok) {
+                    // บันทึก Token แล้วย้ายไปหน้า Dashboard
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('username', data.user.name);
+                    window.location.href = '/dashboard.html'; 
+                } else {
+                    errorMsg.innerText = data.message;
+                    errorMsg.style.color = 'red';
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+</html>

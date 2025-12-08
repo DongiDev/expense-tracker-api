@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h2>ลืมรหัสผ่าน (Forgot Password)</h2>
+    <p>กรอกอีเมลเพื่อขอรหัส OTP</p>
+    
+    <input type="email" id="email" placeholder="อีเมลที่เคยสมัครไว้">
+    <button onclick="requestOTP()">ขอรหัส OTP</button>
+
+    <script>
+        async function requestOTP() {
+            const email = document.getElementById('email').value;
+
+            try {
+                const res = await fetch('http://localhost:3000/api/auth/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await res.json();
+                alert(data.message);
+
+            } catch (err) {
+                alert("Error");
+            }
+        }
+    </script>
+</body>
+</html>
