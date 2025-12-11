@@ -38,6 +38,11 @@ app.use('/api/auth', authRoutes);
 const transactionRoutes = require('./routes/transactionRoutes');
 app.use('/api/transactions', transactionRoutes);
 
+// ถ้าใครเข้ามาหน้าแรก (/) ให้ส่งไปหน้า login ทันที
+app.get('/', (req, res) => {
+    res.redirect('/login.html');
+});
+
 
 //! เปิด Server
 const PORT = 3000;
